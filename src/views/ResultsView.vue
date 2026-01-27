@@ -92,7 +92,7 @@ const trafficLight = computed(() => [
           
           <div class="relative bg-white p-6 rounded-3xl shadow-2xl">
             <qrcode-vue 
-              :value="voteUrl" 
+              :value="voteUrl + '/voting'"
               :size="400" 
               level="H" 
               render-as="svg"
@@ -103,7 +103,7 @@ const trafficLight = computed(() => [
 
         <div class="mt-10 text-center space-y-2">
           <h3 class="text-white text-2xl font-black tracking-tight uppercase">Голосуй сейчас</h3>
-          <p class="text-white/40 text-xs font-light italic">{{ voteUrl }}</p>
+          <p class="text-white/40 text-xs font-light italic">{{ voteUrl }}/votes</p>
         </div>
       </div>
 
