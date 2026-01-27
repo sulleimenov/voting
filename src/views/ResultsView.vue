@@ -39,7 +39,6 @@ onMounted(() => {
   // Первый запуск
   fetchVotes()
   
-  // Обновляем данные каждые 5 секунд
   pollingTimer = setInterval(fetchVotes, 2000)
 })
 

@@ -76,9 +76,9 @@ const sendVote = async (id) => {
         <p class="text-white/50 mt-4 font-medium leading-tight">
           Ваш голос принят.<br>Результат обновится на экране.
         </p>
-        <button @click="voted = false" class="mt-8 text-white/20 text-xs underline uppercase tracking-widest">
+        <!-- <button @click="voted = false" class="mt-8 text-white/20 text-xs underline uppercase tracking-widest">
           Голосовать снова (тест)
-        </button>
+        </button> -->
       </div>
     </div>
   </div>
