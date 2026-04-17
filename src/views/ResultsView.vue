@@ -3,21 +3,10 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import QrcodeVue from 'qrcode.vue'
 
 const stats = ref({ use: 0, try: 0, none: 0 })
-const recentVotes = ref([]) // Новый массив для списка голосов
 const voteUrl = window.location.origin
 let pollingTimer = null
 
-// Маппинг для отображения статусов в списке
-const statusMap = {
-	1: {
-		label: 'Уже применяет',
-		color: 'text-emerald-400',
-		bg: 'bg-emerald-400/10',
-	},
-	2: { label: 'Пробует', color: 'text-amber-400', bg: 'bg-amber-400/10' },
-	3: { label: 'Не применяет', color: 'text-rose-400', bg: 'bg-rose-400/10' },
-}
-
+// Функция для обработки массива данных из API
 const processApiData = (data) => {
 	const newStats = { use: 0, try: 0, none: 0 }
 
@@ -27,38 +16,36 @@ const processApiData = (data) => {
 		else if (item.voice === 3) newStats.none++
 	})
 
-	// Сортируем последние голоса по дате (свежие сверху)
-	const sorted = [...data].sort(
-		(a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-	)
-	recentVotes.value = sorted.slice(0, 10) // Ограничим список 10-ю записями
-
 	return newStats
 }
 
+// Основная функция запроса к API
 const fetchVotes = async () => {
 	try {
+		// Замените URL на ваш реальный эндпоинт
 		const response = await fetch(
 			'https://69c60516f272266f3eabc8e6.mockapi.io/voting',
 		)
 		const data = await response.json()
-		stats.value = processApiData(data)
+
+		const processed = processApiData(data)
+
+		// Плавное обновление данных (без резких скачков анимации)
+		stats.value = processed
 	} catch (error) {
 		console.error('Ошибка при загрузке голосов:', error)
 	}
 }
 
-const formatDate = (dateStr) => {
-	const d = new Date(dateStr)
-	return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
-
 onMounted(() => {
+	// Первый запуск
 	fetchVotes()
-	pollingTimer = setInterval(fetchVotes, 3000)
+
+	pollingTimer = setInterval(fetchVotes, 2000)
 })
 
 onUnmounted(() => {
+	// Очищаем таймер при уходе со страницы
 	if (pollingTimer) clearInterval(pollingTimer)
 })
 
@@ -93,119 +80,83 @@ const trafficLight = computed(() => [
 
 <template>
 	<div
-		class="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 lg:p-8 overflow-hidden"
+		class="min-h-screen bg-[#0f172a] flex items-center justify-center p-8 overflow-hidden"
 	>
 		<div
 			class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full"
 		></div>
+		<!-- <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/10 blur-[120px] rounded-full"></div> -->
 
 		<div
-			class="relative z-10 flex flex-col xl:flex-row items-stretch gap-8 max-w-[95vw]"
+			class="relative z-10 flex flex-col lg:flex-row items-center gap-16 lg:gap-32 bg-white/5 backdrop-blur-xl p-12 lg:p-20 rounded-[4rem] border border-white/10 shadow-2xl"
 		>
-			<div
-				class="flex flex-col gap-8 bg-white/5 backdrop-blur-xl p-10 lg:p-14 rounded-[3rem] border border-white/10 shadow-2xl justify-center"
-			>
+			<div class="flex flex-col gap-10">
 				<div
 					v-for="item in trafficLight"
 					:key="item.id"
-					class="flex items-center gap-6 group"
+					class="flex items-center gap-8 group transition-transform duration-500 hover:scale-105"
 				>
 					<div
 						:class="[
 							item.color,
 							item.shadow,
-							'w-20 h-20 rounded-full flex items-center justify-center bg-gradient-to-br shadow-[0_0_30px_-5px] relative overflow-hidden transition-transform duration-500 group-hover:scale-110',
+							'w-28 h-28 rounded-full flex items-center justify-center bg-gradient-to-br shadow-[0_0_40px_-10px] relative overflow-hidden',
 						]"
 					>
-						<span class="text-white text-3xl font-black">{{ item.val }}</span>
+						<div
+							class="absolute top-2 left-1/4 w-1/2 h-1/4 bg-white/30 blur-md rounded-full"
+						></div>
+						<span class="text-white text-5xl font-black drop-shadow-md">{{
+							item.val
+						}}</span>
 					</div>
+
 					<div class="flex flex-col">
-						<span class="text-xl font-bold text-white/90">{{
+						<span class="text-3xl font-bold text-white/90 tracking-tight">{{
 							item.label
 						}}</span>
 						<div
-							class="h-0.5 w-0 group-hover:w-full transition-all duration-500 bg-gradient-to-r"
+							class="h-1 w-0 group-hover:w-full transition-all duration-500 bg-gradient-to-r"
 							:class="item.color"
 						></div>
 					</div>
 				</div>
-
-				<div
-					class="mt-4 pt-6 border-t border-white/10 flex items-center justify-between"
-				>
-					<span
-						class="text-white/40 font-bold uppercase tracking-widest text-sm"
-						>Всего голосов</span
-					>
-					<span class="text-white text-4xl font-black">{{ total }}</span>
-				</div>
 			</div>
 
-			<div
-				class="flex flex-col w-full xl:w-[450px] bg-white/5 backdrop-blur-xl p-8 rounded-[3rem] border border-white/10 shadow-2xl"
-			>
-				<h3
-					class="text-white/60 font-black text-xl mb-6 uppercase tracking-wider px-2"
-				>
-					Лента событий
-				</h3>
-
+			<div class="flex flex-col items-center justify-center">
 				<div
-					class="flex flex-col gap-3 overflow-y-auto max-h-[400px] custom-scrollbar pr-2"
-				>
-					<div
-						v-for="vote in recentVotes"
-						:key="vote.id"
-						class="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 animate-fade-in"
-					>
-						<div class="flex flex-col">
-							<span class="text-xs text-white/30 font-mono mb-1"
-								>ID: {{ vote.id }}</span
-							>
-							<span
-								:class="['font-bold text-sm', statusMap[vote.voice]?.color]"
-							>
-								{{ statusMap[vote.voice]?.label }}
-							</span>
-						</div>
-						<div class="text-right">
-							<span class="text-white/50 text-xs block">{{
-								formatDate(vote.createdAt)
-							}}</span>
-						</div>
-					</div>
-
-					<div
-						v-if="recentVotes.length === 0"
-						class="text-white/20 text-center py-10 italic"
-					>
-						Ожидание первых голосов...
-					</div>
+					class="h-32 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent hidden lg:block"
+				></div>
+				<div class="my-4 text-white/20 font-black text-6xl select-none">
+					{{ total }}
 				</div>
+				<div
+					class="h-32 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent hidden lg:block"
+				></div>
 			</div>
 
-			<div
-				class="flex flex-col items-center justify-center bg-white/5 backdrop-blur-xl p-10 lg:p-14 rounded-[3rem] border border-white/10 shadow-2xl"
-			>
-				<div class="relative group">
+			<div class="flex flex-col items-center">
+				<div class="relative group cursor-pointer">
 					<div
-						class="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-3xl blur opacity-20 group-hover:opacity-60 transition duration-1000"
+						class="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-3xl blur opacity-30 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"
 					></div>
-					<div class="relative bg-white p-4 rounded-2xl">
+
+					<div class="relative bg-white p-6 rounded-3xl shadow-2xl">
 						<qrcode-vue
 							:value="voteUrl + '/voting'"
-							:size="220"
+							:size="400"
 							level="H"
 							render-as="svg"
 							foreground="#0f172a"
 						/>
 					</div>
 				</div>
-				<div class="mt-8 text-center">
-					<h3 class="text-white text-xl font-black uppercase tracking-tighter">
+
+				<div class="mt-10 text-center space-y-2">
+					<h3 class="text-white text-2xl font-black tracking-tight uppercase">
 						Голосуй сейчас
 					</h3>
-					<p class="text-white/30 text-[10px] mt-2 font-mono break-all">
+					<p class="text-white/40 text-xs font-light italic">
 						{{ voteUrl }}/voting
 					</p>
 				</div>
@@ -220,32 +171,5 @@ const trafficLight = computed(() => [
 body {
 	font-family: 'Inter', sans-serif;
 	margin: 0;
-	color-scheme: dark;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-	width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-	background: rgba(255, 255, 255, 0.05);
-	border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.2);
-	border-radius: 10px;
-}
-
-@keyframes fade-in {
-	from {
-		opacity: 0;
-		transform: translateY(10px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-.animate-fade-in {
-	animation: fade-in 0.5s ease-out forwards;
 }
 </style>
